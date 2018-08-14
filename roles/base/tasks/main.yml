@@ -1,0 +1,75 @@
+---
+# tasks file for base
+- name: disable selinux in file
+  lineinfile:
+    path: /etc/selinux/config
+    regexp: '^SELINUX='
+    line: 'SELINUX=disabled'
+  when: inventory_hostname in groups['glusterfs_nodes'] and ansible_os_family == "RedHat"
+  tag: base
+
+- name: disable selinux in commond
+  shell: setenforce 0
+  ignore_errors: True
+  when: inventory_hostname in groups['glusterfs_nodes'] and ansible_os_family == "RedHat"
+  tag: base
+
+- name: stop and disable firewalld
+  service:
+    name: firewalld
+    state: stopped
+    enabled: no
+  when: inventory_hostname in groups['glusterfs_nodes'] and ansible_os_family == "RedHat"
+  tag: base
+
+- name: mkdir host_var
+  file:
+    path: "{{ yml }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  when: inventory_hostname in groups['glusterfs_nodes'][0] and ansible_os_family == "RedHat"
+  tag: base
+
+- name: touch host_var
+  file:
+    path: "{{ yml }}{{ item }}.yml"
+    state: touch
+    owner: root
+    group: root
+    mode: 0755
+  with_items: "{{ groups['glusterfs_nodes'] }}"
+  when: inventory_hostname in groups['glusterfs_nodes'][0] and ansible_os_family == "RedHat"
+  tag: base
+    
+- name: config hosts
+  blockinfile:
+    path: /etc/hosts
+    block: |
+      {% for host in groups['glusterfs_nodes'] %}
+      {{ host }} {{ hostvars[host].ansible_hostname }}
+      {% endfor %} 
+  when: inventory_hostname in groups['glusterfs_nodes'] and ansible_os_family == "RedHat"
+  tag: base
+
+- name: install glusterfs
+  shell: yum install -y centos-release-gluster`uname -r|awk -F"-" '{print $1}' |awk -F"." '{print $1$2}'`
+  when: inventory_hostname in groups['glusterfs_nodes'] and ansible_os_family == "RedHat"
+  tag: base
+  
+- name: install glusterfs-server
+  yum:
+    name: glusterfs-server
+    state: present
+  when: inventory_hostname in groups['glusterfs_nodes'] and ansible_os_family == "RedHat"
+  tag: base
+
+- name: start glusterfs
+  systemd:
+    state: started
+    name: glusterd
+    enabled: yes
+  when: inventory_hostname in groups['glusterfs_nodes'] and ansible_os_family == "RedHat"
+  tag: base
+

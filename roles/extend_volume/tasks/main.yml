@@ -1,0 +1,11 @@
+---
+# tasks file for extend_volume
+- name: extend_volume
+  shell: gluster volume add-brick  {{ volume_name }} {% for host in groups['extend_node'] %}{% for d in hostvars[host]['extend_disk'] %}{{ host }}:/data/{{ d }}{% if not loop.last %} {% endif %}{% endfor %}{% if not loop.last %} {% endif %}{% endfor %} force
+  when: inventory_hostname in groups['glusterfs_nodes'][0] and ansible_os_family == "RedHat"
+  tags: extend_volume
+
+- name: rebalance volume
+  shell: gluster volume rebalance {{ volume_name }} start
+  when: inventory_hostname in groups['glusterfs_nodes'][0] and ansible_os_family == "RedHat"
+  tags: extend_volume

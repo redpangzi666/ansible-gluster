@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#create disk
+for n in `cat /tmp/disk.txt`
+do
+	mkfs.xfs $n
+	dir=/bricks$n
+	mkdir -p $dir     
+	mount $n $dir
+	echo "$n $dir xfs defaults 0 0" >> /etc/fstab
+done
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

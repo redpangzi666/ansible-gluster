@@ -1,0 +1,92 @@
+---
+#tasks file for glusterfs_nodes
+- name: Create a trusted storage pool
+  shell: gluster peer probe {{ item }}
+  with_items: "{{ groups['glusterfs_nodes'] }}"
+  run_once: True
+  tags: glusterfs_nodes
+
+#- name: create host.txt
+#  lineinfile:
+#    path: /tmp/host.txt
+#    line: "{% for host in  groups['glusterfs_nodes'] %} {{ hostvars[host].ansible_hostname }} {% endfor %}"
+#    create: yes
+#  when: inventory_hostname in groups['glusterfs_nodes'][0]
+#  tags: glusterfs_nodes
+#
+#- name: change host style
+#  shell: cat /tmp/host.txt|xargs -n1|tee -a /tmp/host.txt
+#  run_once: True
+#  when: inventory_hostname in groups['glusterfs_nodes'][0] and ansible_os_family == "RedHat"
+#  tags: glusterfs_nodes
+#
+#- name: scp host.sh
+#  template: src=host.sh.j2 dest=/tmp/host.sh owner=root group=root mode=0755
+#  run_once: True
+#  when: inventory_hostname in groups['glusterfs_nodes'][0] and ansible_os_family == "RedHat"
+#  tags: glusterfs_nodes
+#
+#- name: sh host.sh
+#  shell: sh /tmp/host.sh
+#  run_once: True
+#  when: inventory_hostname in groups['glusterfs_nodes'][0] and ansible_os_family == "RedHat"
+#  tags: glusterfs_nodes
+
+- name: mkdir mount_path
+  file:
+    path: "/data/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  with_items: "{{ disk }}"
+  when: inventory_hostname in groups['glusterfs_nodes'] and ansible_os_family == "RedHat"
+  tags: glusterfs_nodes
+#
+- name: format datanode disks
+  filesystem: 
+    fstype: xfs 
+    dev: "/dev/{{ item }}" 
+    force: true
+  with_items: "{{ disk }}"
+  ignore_errors: True
+  when: inventory_hostname in groups['glusterfs_nodes'] and ansible_os_family == "RedHat"
+  tags: glusterfs_nodes
+#
+- name: mount datanode disks
+  mount:
+    path: "/data/{{ item }}"
+    src: "/dev/{{ item }}"
+    fstype: xfs
+    opts: "defaults,noatime,nobarrier"
+    state: mounted
+  with_items: "{{ disk }}"
+  ignore_errors: True
+  when: inventory_hostname in groups['glusterfs_nodes'] and ansible_os_family == "RedHat"
+  tags: glusterfs_nodes
+
+#- name: create volume
+#  gluster_volume:
+#    state: present
+#    name: "{{ volume_name }}"
+#    bricks: "{% for host in  groups['glusterfs_nodes'] %}{% for d in hostvars[host]['disk'] %}/data/{{ d }}{% if not loop.last %},{% endif %}{% endfor %}{% endfor %}"
+#    rebalance: yes
+#    replicas: 2
+#    force: true
+#    cluster:  "{% for host in  groups['glusterfs_nodes'] %} {{ host }}{% if not loop.last %},{% endif %}{% endfor %}"
+#  run_once: True
+#  #ignore_errors: True 
+#  tags: glusterfs_nodes
+
+- name: create volume
+  shell: gluster volume create  {{ volume_name }} replica 2  {% for host in groups['glusterfs_nodes'] %}{% for d in hostvars[host]['disk'] %}{{ host }}:/data/{{ d }}{% if not loop.last %} {% endif %}{% endfor %}{% if not loop.last %} {% endif %}{% endfor %} force 
+  when: inventory_hostname in groups['glusterfs_nodes'][0] and ansible_os_family == "RedHat" 
+  tags: glusterfs_nodes
+
+- name: start gluster volume
+  gluster_volume:
+    state: started
+    name: "{{ volume_name }}"
+  run_once: True
+  when: inventory_hostname in groups['glusterfs_nodes'][0] and ansible_os_family == "RedHat"
+  tags: glusterfs_nodes

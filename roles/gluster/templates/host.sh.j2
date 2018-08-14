@@ -1,0 +1,8 @@
+#!/bin/bash
+#create trusted pool
+for i in `cat /tmp/host.txt`
+do
+       gluster peer probe $i
+done
+
+

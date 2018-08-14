@@ -1,0 +1,16 @@
+[glusterfs_nodes]
+10.100.22.135 disk="['sdb','sdc']"
+10.100.22.136 disk="['sdb']"
+10.100.22.137 disk="['sdb']"
+
+[glusterfs_nodes:vars]
+volume_name=k8s
+
+
+[extend_node]
+10.100.22.136 extend_disk="['sdc']"
+10.100.22.137 extend_disk="['sdc']"
+
+[k8s_node]
+10.100.22.132
+

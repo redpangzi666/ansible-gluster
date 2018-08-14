@@ -1,0 +1,12 @@
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: glusterfs-ep
+subsets:
+{% for host in groups['glusterfs_nodes'] %}
+  - addresses:
+      - ip: {{ host }}
+    ports:
+      - port: 1
+{% if not loop.last %}{% endif %}
+{% endfor %}
